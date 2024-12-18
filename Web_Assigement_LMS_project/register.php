@@ -1,46 +1,23 @@
 <?php
-// Database connection
-$servername = "localhost";
-$username = "root"; // default username for WAMP
-$password = ""; // default password for WAMP (empty)
-$dbname = "user_db"; // database name
+include 'db.php';
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-if (isset($_POST['submit'])) {
-    // Retrieve form data
-    $name = $_POST['name'];
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $username = $_POST['username'];
     $email = $_POST['email'];
-    $password = $_POST['pass'];
-    $confirm_password = $_POST['c_pass'];
+    $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-    // Validate password match
-    if ($password != $confirm_password) {
-        echo "Passwords do not match!";
+    $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $username, $email, $password);
+
+    if ($stmt->execute()) {
+        echo "Registration successful!";
+        header("Location: login.php");
     } else {
-        // Hash the password before storing it
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-        // Insert user data into the database (no profile image)
-        $sql = "INSERT INTO users (name, email, password) 
-                VALUES ('$name', '$email', '$hashed_password')";
-
-        if ($conn->query($sql) === TRUE) {
-            echo "Registration successful!";
-        } else {
-            echo "Error: " . $sql . "<br>" . $conn->error;
-        }
+        echo "Error: " . $stmt->error;
     }
 }
-
-$conn->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -113,13 +90,12 @@ $conn->close();
    <form action="register.php" method="post">
       <h3>Register Now</h3>
       <p>Your Name <span>*</span></p>
-      <input type="text" name="name" placeholder="Enter your name" required maxlength="50" class="box">
+      <input type="text" id="username" name="username" placeholder="Enter your name" required maxlength="50" class="box">
       <p>Your Email <span>*</span></p>
       <input type="email" name="email" placeholder="Enter your email" required maxlength="50" class="box">
       <p>Your Password <span>*</span></p>
-      <input type="password" name="pass" placeholder="Enter your password" required maxlength="20" class="box">
-      <p>Confirm Password <span>*</span></p>
-      <input type="password" name="c_pass" placeholder="Confirm your password" required maxlength="20" class="box">
+      <input type="password" name="password" placeholder="Enter your password" required maxlength="20" class="box">
+      
       <input type="submit" value="Register New" name="submit" class="btn">
    </form>
 </section>
